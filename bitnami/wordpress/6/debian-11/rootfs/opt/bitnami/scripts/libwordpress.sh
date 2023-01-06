@@ -431,7 +431,7 @@ wordpress_initialize() {
         db_user="$(wordpress_conf_get "DB_USER")"
         db_pass="$(wordpress_conf_get "DB_PASSWORD")"
         db_host_port="$(wordpress_conf_get "DB_HOST")"
-        db_flags="$(wordpress_conf_get "MYSQL_CLIENT_FLAGS")"
+        #db_flags="$(wordpress_conf_get "MYSQL_CLIENT_FLAGS")"
         db_host="${db_host_port%:*}"
         if [[ "$db_host_port" =~ :[0-9]+$ ]]; then
             # Use '##' to extract only the part after the last colon, to avoid any possible issues with IPv6 addresses
@@ -440,15 +440,24 @@ wordpress_initialize() {
             db_port="$WORDPRESS_DATABASE_PORT_NUMBER"
         fi
 
+        #local mysqli_cli_options=""
+        #if [[ "$db_flags" == *"MYSQLI_CLIENT_SSL"* ]]; then
+        #    if [[ "$db_flags" == *"MYSQLI_CLIENT_SSL_DONT_VERIFY_SERVER_CERT"* ]]; then
+        #        mysqli_cli_options+="--ssl=true --ssl-verify-server-cert=false"
+        #    else
+        #         mysqli_cli_options+="--ssl=true"
+        #    fi
+        #fi
+
+        #Don't use wp-config for this, because of a bug: https://github.com/wp-cli/config-command/issues/150
         local mysqli_cli_options=""
-        if [[ "$db_flags" == *"MYSQLI_CLIENT_SSL"* ]]; then
-            if [[ "$db_flags" == *"MYSQLI_CLIENT_SSL_DONT_VERIFY_SERVER_CERT"* ]]; then
+        if is_boolean_yes "$WORDPRESS_ENABLE_DATABASE_SSL"; then
+            if ! is_boolean_yes "$WORDPRESS_VERIFY_DATABASE_SSL"; then
                 mysqli_cli_options+="--ssl=true --ssl-verify-server-cert=false"
             else
-                 mysqli_cli_options+="--ssl=true"
+                mysqli_cli_options+="--ssl=true"
             fi
         fi
-
         wordpress_wait_for_mysql_connection "$db_host" "$db_port" "$db_name" "$db_user" "$db_pass" "$mysqli_cli_options"
         wp_execute core update-db
 
@@ -589,8 +598,6 @@ wordpress_wait_for_mysql_connection() {
     local -r db_pass="${5:-}"
     local -r db_options="${6:-}"
     check_mysql_connection() {
-        #Remove test first line
-        echo "SELECT 1" "$db_host" "$db_port" "$db_name" "$db_user" "$db_pass" "$db_options"
         echo "SELECT 1" | mysql_remote_execute "$db_host" "$db_port" "$db_name" "$db_user" "$db_pass" "$db_options"
     }
     if ! retry_while "check_mysql_connection"; then
