@@ -440,16 +440,8 @@ wordpress_initialize() {
             db_port="$WORDPRESS_DATABASE_PORT_NUMBER"
         fi
 
-        #local mysqli_cli_options=""
-        #if [[ "$db_flags" == *"MYSQLI_CLIENT_SSL"* ]]; then
-        #    if [[ "$db_flags" == *"MYSQLI_CLIENT_SSL_DONT_VERIFY_SERVER_CERT"* ]]; then
-        #        mysqli_cli_options+="--ssl=true --ssl-verify-server-cert=false"
-        #    else
-        #         mysqli_cli_options+="--ssl=true"
-        #    fi
-        #fi
-
         #Don't use wp-config for this, because of a bug: https://github.com/wp-cli/config-command/issues/150
+        #The env variable has to be present for this to work because of this.
         local mysqli_cli_options=""
         if is_boolean_yes "$WORDPRESS_ENABLE_DATABASE_SSL"; then
             if ! is_boolean_yes "$WORDPRESS_VERIFY_DATABASE_SSL"; then
